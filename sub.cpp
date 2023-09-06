@@ -69,32 +69,26 @@ int main() {
   sort(v.begin(), v.end());
 
   vector<output_t> ans(0);
+  vector<bool> placed(v.size(), false);
+  int veg_idx = 0;
 
-  int nowturn = 1;
-  int idx = 0;
-  while (nowturn <= turn && idx < v.size()) {
+  {  // Initial Ans
     queue<int> q;
+    bitset<h * w> used;
     q.push(getId(in, 0));
-    vector<bool> used(h * w, false);
-    int lastturn = -1;
-    while (!q.empty() && idx < v.size()) {
-      if (nowturn > v[idx].place_before) {
-        idx++;
-        continue;
-      }
+    while (!q.empty() && veg_idx < v.size()) {
       int id = q.front();
       q.pop();
       auto [i, j] = getPos(id);
-      if (used[id]) continue;
-      ans.push_back({ v[idx].idx + 1, i, j, nowturn });
-      lastturn = max(lastturn, v[idx].cut_turn);
-      used[getId(i, j)] = true;
-      idx++;
+      if (used.test(id)) continue;
+      used.set(id);
+      ans.push_back({ v[veg_idx].idx + 1, i, j, 1 });
+      placed[v[veg_idx].idx] = true;
+      veg_idx++;
       for (int next : Graph[id]) {
-        if (!used[next]) q.push(next);
+        if (!used.test(next)) q.push(next);
       }
     }
-    nowturn = lastturn + 1;
   }
 
   cout << ans.size() << '\n';
