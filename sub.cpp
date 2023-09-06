@@ -13,9 +13,14 @@ using ull = unsigned long long;
 constexpr int turn = 100, h = 20, w = 20;
 
 struct vegeta_t {
-  int placebefore;
-  int cutturn;
+  int place_before;
+  int cut_turn;
   int idx;
+
+  bool operator<(const vegeta_t& other) const {
+    if (cut_turn == other.cut_turn) return place_before < other.place_before;
+    return cut_turn < other.cut_turn;
+  }
 };
 
 struct output_t {
@@ -58,13 +63,10 @@ int main() {
     int k;
     cin >> k;
     v.resize(k);
-    rep(i, k) cin >> v[i].placebefore >> v[i].cutturn;
+    rep(i, k) cin >> v[i].place_before >> v[i].cut_turn;
     rep(i, k) v[i].idx = i;
   }
-  sort(v.begin(), v.end(), [](const vegeta_t& a, const vegeta_t& b) {
-    if (a.cutturn == b.cutturn) return a.placebefore < b.placebefore;
-    return a.cutturn < b.cutturn;
-  });
+  sort(v.begin(), v.end());
 
   vector<output_t> ans(0);
 
@@ -76,7 +78,7 @@ int main() {
     vector<bool> used(h * w, false);
     int lastturn = -1;
     while (!q.empty() && idx < v.size()) {
-      if (nowturn > v[idx].placebefore) {
+      if (nowturn > v[idx].place_before) {
         idx++;
         continue;
       }
@@ -85,7 +87,7 @@ int main() {
       auto [i, j] = getPos(id);
       if (used[id]) continue;
       ans.push_back({ v[idx].idx + 1, i, j, nowturn });
-      lastturn = max(lastturn, v[idx].cutturn);
+      lastturn = max(lastturn, v[idx].cut_turn);
       used[getId(i, j)] = true;
       idx++;
       for (int next : Graph[id]) {
