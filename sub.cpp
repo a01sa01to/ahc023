@@ -30,6 +30,48 @@ struct output_t {
   int plant_turn;
 };
 
+struct LowLink {
+  const vector<vector<int>>& Graph;
+  const bitset<h * w>& cant_visit;
+  bitset<h * w> used;
+  bitset<h * w> articulation;
+  vector<int> ord, low;
+
+  LowLink(const vector<vector<int>>& Graph, const bitset<h * w>& cant_visit)
+    : Graph(Graph), cant_visit(cant_visit) {
+    ord.resize(h * w, 0);
+    low.resize(h * w, 0);
+    articulation.reset();
+    articulation.flip();
+    for (int i = 0; i < h * w; i++) {
+      if (used.test(i) || cant_visit.test(i)) continue;
+      dfs(i, 0, -1);
+    }
+  }
+
+  int dfs(int v, int k, int par) {
+    used.set(v);
+    ord[v] = k++;
+    low[v] = ord[v];
+    bool is_articulation = false;
+    int cnt = 0;
+    for (int next_v : Graph[v]) {
+      if (!used.test(next_v)) {
+        cnt++;
+        k = dfs(next_v, k, v);
+        low[v] = min(low[v], low[next_v]);
+        if (par != -1 && ord[v] <= low[next_v]) is_articulation = true;
+      }
+      else if (next_v != par) {
+        low[v] = min(low[v], ord[next_v]);
+      }
+    }
+    if (par == -1 && cnt > 1) is_articulation = true;
+    if (is_articulation) articulation.reset(v);
+    return k;
+  }
+};
+
 int getId(int i, int j) { return i * w + j; }
 pair<int, int> getPos(int id) { return { id / w, id % w }; }
 
@@ -97,7 +139,6 @@ int main() {
 
   for (int now_turn = 2; now_turn <= turn; now_turn++) {
     // Plant Phase
-    
 
     // Crop Phase
     while (ans_idx < ans.size()) {
