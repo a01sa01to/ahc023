@@ -142,8 +142,8 @@ int main() {
   for (int now_turn = 2; now_turn <= turn; now_turn++) {
     // Plant Phase
     queue<int> can_plant;
-    // for (int i = h * w - 1; i > 0; i--) {
-    for (int i = 1; i < h * w; i++) {
+    for (int i = h * w - 1; i > 0; i--) {
+      // for (int i = 1; i < h * w; i++) {
       if (!used.test(bfs_order[i])) can_plant.push(bfs_order[i]);
     }
     while (!can_plant.empty()) {
