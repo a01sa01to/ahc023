@@ -80,7 +80,7 @@ int main() {
   cin.ignore(10), cin >> in;
   vector Graph(h * w, vector<int>(0));
   vector<vegeta_t> v;
-  vector<int> crop_turn;
+  vector crop_turn(h, vector<int>(w, 0));
 
   {  // Input
     rep(i, h - 1) {
@@ -106,10 +106,8 @@ int main() {
     int k;
     cin >> k;
     v.resize(k);
-    crop_turn.resize(k);
     rep(i, k) cin >> v[i].plant_before >> v[i].crop_turn;
     rep(i, k) v[i].idx = i;
-    rep(i, k) crop_turn[i] = v[i].crop_turn;
   }
   sort(v.begin(), v.end());
 
@@ -131,6 +129,7 @@ int main() {
       bfs_order.push_back(id);
       used.set(id);
       ans.push_back({ v[veg_idx].idx, i, j, 1 });
+      crop_turn[i][j] = v[veg_idx].crop_turn;
       placed[v[veg_idx].idx] = true;
       veg_idx++;
       for (int next : Graph[id]) {
@@ -144,7 +143,6 @@ int main() {
     // Plant Phase
     queue<int> can_plant;
     rep(i, h * w) if (!used.test(bfs_order[i])) can_plant.push(bfs_order[i]);
-    Debug(can_plant);
     while (!can_plant.empty()) {
       if (veg_idx >= v.size()) break;
       if (v[veg_idx].plant_before < now_turn) {
@@ -155,32 +153,42 @@ int main() {
       can_plant.pop();
       if (used.test(id)) continue;
       queue<int> q;
-      q.push(getId(in, 0));
       bitset<h * w> visited;
+      {
+        auto [i, j] = getPos(id);
+        q.push(getId(in, 0));
+        crop_turn[i][j] = v[veg_idx].crop_turn;
+      }
       while (!q.empty()) {
         int now = q.front();
         q.pop();
         if (visited.test(now)) continue;
+        auto [i, j] = getPos(now);
         visited.set(now);
-        if (now == id) continue;
         for (int next : Graph[now]) {
-          if (!visited.test(next)) q.push(next);
+          auto [ni, nj] = getPos(next);
+          if (!visited.test(next) && ((used.test(next) && crop_turn[ni][nj] >= crop_turn[i][j]) || crop_turn[i][j] == 0)) q.push(next);
         }
       }
-      if ((visited & used) == used) {
+      if ((visited & used) == used && visited.test(id)) {
         auto [i, j] = getPos(id);
         ans.push_back({ v[veg_idx].idx, i, j, now_turn });
         placed[v[veg_idx].idx] = true;
         veg_idx++;
         used.set(id);
       }
+      else {
+        auto [i, j] = getPos(id);
+        crop_turn[i][j] = 0;
+      }
     }
 
     // Crop Phase
     while (ans_idx < ans.size()) {
-      if (crop_turn[ans[ans_idx].veg_idx] == now_turn) {
-        int i = ans[ans_idx].plant_i;
-        int j = ans[ans_idx].plant_j;
+      int i = ans[ans_idx].plant_i;
+      int j = ans[ans_idx].plant_j;
+      if (crop_turn[i][j] == now_turn) {
+        crop_turn[i][j] = 0;
         used.reset(getId(i, j));
         ans_idx++;
       }
