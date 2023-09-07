@@ -115,6 +115,7 @@ int main() {
 
   vector<output_t> ans(0);
   vector<bool> placed(v.size(), false);
+  vector<int> bfs_order(0);
   bitset<h * w> used;
   int veg_idx = 0;
   int ans_idx = 0;
@@ -127,8 +128,9 @@ int main() {
       q.pop();
       auto [i, j] = getPos(id);
       if (used.test(id)) continue;
+      bfs_order.push_back(id);
       used.set(id);
-      ans.push_back({ v[veg_idx].idx + 1, i, j, 1 });
+      ans.push_back({ v[veg_idx].idx, i, j, 1 });
       placed[v[veg_idx].idx] = true;
       veg_idx++;
       for (int next : Graph[id]) {
@@ -136,9 +138,43 @@ int main() {
       }
     }
   }
+  assert(bfs_order.size() == h * w);
 
   for (int now_turn = 2; now_turn <= turn; now_turn++) {
     // Plant Phase
+    queue<int> can_plant;
+    rep(i, h * w) if (!used.test(bfs_order[i])) can_plant.push(bfs_order[i]);
+    Debug(can_plant);
+    while (!can_plant.empty()) {
+      if (veg_idx >= v.size()) break;
+      if (v[veg_idx].plant_before < now_turn) {
+        veg_idx++;
+        continue;
+      }
+      int id = can_plant.front();
+      can_plant.pop();
+      if (used.test(id)) continue;
+      queue<int> q;
+      q.push(getId(in, 0));
+      bitset<h * w> visited;
+      while (!q.empty()) {
+        int now = q.front();
+        q.pop();
+        if (visited.test(now)) continue;
+        visited.set(now);
+        if (now == id) continue;
+        for (int next : Graph[now]) {
+          if (!visited.test(next)) q.push(next);
+        }
+      }
+      if ((visited & used) == used) {
+        auto [i, j] = getPos(id);
+        ans.push_back({ v[veg_idx].idx, i, j, now_turn });
+        placed[v[veg_idx].idx] = true;
+        veg_idx++;
+        used.set(id);
+      }
+    }
 
     // Crop Phase
     while (ans_idx < ans.size()) {
@@ -155,7 +191,7 @@ int main() {
 
   cout << ans.size() << '\n';
   for (output_t o : ans) {
-    printf("%d %d %d %d\n", o.veg_idx, o.plant_i, o.plant_j, o.plant_turn);
+    printf("%d %d %d %d\n", o.veg_idx + 1, o.plant_i, o.plant_j, o.plant_turn);
   }
   return 0;
 }
