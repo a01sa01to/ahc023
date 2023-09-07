@@ -71,33 +71,10 @@ int main() {
 
   vector<output_t> ans(0);
   vector<bool> placed(v.size(), false);
-  vector<int> bfs_order(0);
   bitset<h * w> used;
   int veg_idx = 0;
-  int ans_idx = 0;
 
-  {  // Initial Ans
-    queue<int> q;
-    q.push(getId(in, 0));
-    while (!q.empty() && veg_idx < v.size()) {
-      int id = q.front();
-      q.pop();
-      auto [i, j] = getPos(id);
-      if (used.test(id)) continue;
-      bfs_order.push_back(id);
-      used.set(id);
-      ans.push_back({ v[veg_idx].idx, i, j, 1 });
-      crop_turn[i][j] = v[veg_idx].crop_turn;
-      placed[v[veg_idx].idx] = true;
-      veg_idx++;
-      for (int next : Graph[id]) {
-        if (!used.test(next)) q.push(next);
-      }
-    }
-  }
-  assert(bfs_order.size() == h * w);
-
-  for (int now_turn = 2; now_turn <= turn; now_turn++) {
+  for (int now_turn = 1; now_turn <= turn; now_turn++) {
     // Plant Phase
     // まず埋められるところをチェック
     queue<int> can_plant;
@@ -172,16 +149,13 @@ int main() {
     }
 
     // Crop Phase
-    while (ans_idx < ans.size()) {
-      int i = ans[ans_idx].plant_i;
-      int j = ans[ans_idx].plant_j;
+    for (output_t o : ans) {
+      int i = o.plant_i;
+      int j = o.plant_j;
       if (crop_turn[i][j] == now_turn) {
         crop_turn[i][j] = 0;
         used.reset(getId(i, j));
-        ans_idx++;
       }
-      else
-        break;
     }
   }
 
