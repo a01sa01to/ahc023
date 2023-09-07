@@ -142,13 +142,17 @@ int main() {
   for (int now_turn = 2; now_turn <= turn; now_turn++) {
     // Plant Phase
     queue<int> can_plant;
-    rep(i, h * w) if (!used.test(bfs_order[i])) can_plant.push(bfs_order[i]);
+    // for (int i = h * w - 1; i > 0; i--) {
+    for (int i = 1; i < h * w; i++) {
+      if (!used.test(bfs_order[i])) can_plant.push(bfs_order[i]);
+    }
     while (!can_plant.empty()) {
       if (veg_idx >= v.size()) break;
       if (v[veg_idx].plant_before < now_turn) {
         veg_idx++;
         continue;
       }
+      // Simulation
       int id = can_plant.front();
       can_plant.pop();
       if (used.test(id)) continue;
@@ -170,6 +174,7 @@ int main() {
           if (!visited.test(next) && ((used.test(next) && crop_turn[ni][nj] >= crop_turn[i][j]) || crop_turn[i][j] == 0)) q.push(next);
         }
       }
+      // おける
       if ((visited & used) == used && visited.test(id)) {
         auto [i, j] = getPos(id);
         ans.push_back({ v[veg_idx].idx, i, j, now_turn });
