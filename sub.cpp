@@ -141,11 +141,26 @@ int main() {
 
   for (int now_turn = 2; now_turn <= turn; now_turn++) {
     // Plant Phase
+    // まず埋められるところをチェック
     queue<int> can_plant;
-    for (int i = h * w - 1; i > 0; i--) {
-      // for (int i = 1; i < h * w; i++) {
-      if (!used.test(bfs_order[i])) can_plant.push(bfs_order[i]);
+    {
+      queue<int> q;
+      q.push(getId(in, 0));
+      bitset<h * w> visited;
+      while (!q.empty()) {
+        int now = q.front();
+        q.pop();
+        if (visited.test(now)) continue;
+        auto [i, j] = getPos(now);
+        visited.set(now);
+        if (crop_turn[i][j] == 0) can_plant.push(now);
+        for (int next : Graph[now]) {
+          auto [ni, nj] = getPos(next);
+          if (!visited.test(next) && !used.test(next)) q.push(next);
+        }
+      }
     }
+    queue<int> planted;
     while (!can_plant.empty()) {
       if (veg_idx >= v.size()) break;
       if (v[veg_idx].plant_before < now_turn) {
@@ -161,7 +176,7 @@ int main() {
       {
         auto [i, j] = getPos(id);
         q.push(getId(in, 0));
-        crop_turn[i][j] = v[veg_idx].crop_turn;
+        crop_turn[i][j] = -v[veg_idx].crop_turn;
       }
       while (!q.empty()) {
         int now = q.front();
@@ -171,7 +186,11 @@ int main() {
         visited.set(now);
         for (int next : Graph[now]) {
           auto [ni, nj] = getPos(next);
-          if (!visited.test(next) && ((used.test(next) && crop_turn[ni][nj] >= crop_turn[i][j]) || crop_turn[i][j] == 0)) q.push(next);
+          bool can_visit = false;
+          if (crop_turn[i][j] == 0) can_visit = true;
+          if (crop_turn[i][j] > 0 && crop_turn[i][j] <= crop_turn[ni][nj]) can_visit = true;
+          if (crop_turn[i][j] < 0 && -crop_turn[i][j] <= abs(crop_turn[ni][nj])) can_visit = true;
+          if (!visited.test(next) && can_visit) q.push(next);
         }
       }
       // おける
@@ -180,12 +199,18 @@ int main() {
         ans.push_back({ v[veg_idx].idx, i, j, now_turn });
         placed[v[veg_idx].idx] = true;
         veg_idx++;
-        used.set(id);
+        planted.push(id);
       }
       else {
         auto [i, j] = getPos(id);
         crop_turn[i][j] = 0;
       }
+    }
+    while (!planted.empty()) {
+      auto [i, j] = getPos(planted.front());
+      planted.pop();
+      used.set(getId(i, j));
+      if (crop_turn[i][j] < 0) crop_turn[i][j] = -crop_turn[i][j];
     }
 
     // Crop Phase
