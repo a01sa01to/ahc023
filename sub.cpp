@@ -101,7 +101,8 @@ int main() {
   bitset<h * w> used;
   int veg_idx = 0;
 
-  {  // まずスコアの大きいものを 20 個外側にうめちゃう
+  {  // まずスコアの大きいものを 100 個外側にうめちゃう
+    constexpr int outer = 100;
     deque<int> can_plant;
     {
       queue<int> q;
@@ -127,11 +128,11 @@ int main() {
       return score_a > score_b;
     });
     int cnt = 0;
-    while (!can_plant.empty() && cnt < 20) {
+    while (!can_plant.empty() && cnt < outer) {
       int id = can_plant.back();
       can_plant.pop_back();
       auto [i, j] = getPos(id);
-      rep(idx, 20) {
+      rep(idx, outer) {
         if (placed[v[idx].idx]) continue;
         if (canPlant(id, crop_turn, v[idx].crop_turn, used, Graph)) {
           ans.push_back({ v[idx].idx, i, j, 1 });
@@ -149,56 +150,60 @@ int main() {
   for (int now_turn = 1; now_turn <= turn; now_turn++) {
     // Plant Phase
     // まず埋められるところをチェック
-    queue<int> can_plant;
-    {
-      queue<int> q;
-      q.push(getId(in, 0));
-      bitset<h * w> visited;
-      while (!q.empty()) {
-        int now = q.front();
-        q.pop();
-        if (visited.test(now)) continue;
-        auto [i, j] = getPos(now);
-        visited.set(now);
-        if (crop_turn[i][j] == 0) can_plant.push(now);
-        for (int next : Graph[now]) {
-          auto [ni, nj] = getPos(next);
-          if (!visited.test(next) && !used.test(next)) q.push(next);
+    while (true) {
+      bool updated = false;
+      queue<int> can_plant;
+      {
+        queue<int> q;
+        q.push(getId(in, 0));
+        bitset<h * w> visited;
+        while (!q.empty()) {
+          int now = q.front();
+          q.pop();
+          if (visited.test(now)) continue;
+          auto [i, j] = getPos(now);
+          visited.set(now);
+          if (crop_turn[i][j] == 0) can_plant.push(now);
+          for (int next : Graph[now]) {
+            auto [ni, nj] = getPos(next);
+            if (!visited.test(next) && !used.test(next)) q.push(next);
+          }
         }
       }
-    }
-    queue<int> planted;
-    while (!can_plant.empty()) {
-      if (veg_idx >= v.size()) break;
-      if (v[veg_idx].plant_before < now_turn || placed[v[veg_idx].idx]) {
-        veg_idx++;
-        continue;
+      queue<int> planted;
+      while (!can_plant.empty()) {
+        if (veg_idx >= v.size()) break;
+        if (v[veg_idx].plant_before < now_turn || placed[v[veg_idx].idx]) {
+          veg_idx++;
+          continue;
+        }
+        // Simulation
+        int id = can_plant.front();
+        can_plant.pop();
+        if (used.test(id)) continue;
+        // おける
+        if (canPlant(id, crop_turn, v[veg_idx].crop_turn, used, Graph)) {
+          auto [i, j] = getPos(id);
+          ans.push_back({ v[veg_idx].idx, i, j, now_turn });
+          crop_turn[i][j] = -v[veg_idx].crop_turn;
+          placed[v[veg_idx].idx] = true;
+          veg_idx++;
+          planted.push(id);
+        }
+        else {
+          auto [i, j] = getPos(id);
+          crop_turn[i][j] = 0;
+        }
       }
-      // Simulation
-      int id = can_plant.front();
-      can_plant.pop();
-      if (used.test(id)) continue;
-      // おける
-      if (canPlant(id, crop_turn, v[veg_idx].crop_turn, used, Graph)) {
-        auto [i, j] = getPos(id);
-        ans.push_back({ v[veg_idx].idx, i, j, now_turn });
-        crop_turn[i][j] = -v[veg_idx].crop_turn;
-        placed[v[veg_idx].idx] = true;
-        veg_idx++;
-        planted.push(id);
+      while (!planted.empty()) {
+        auto [i, j] = getPos(planted.front());
+        planted.pop();
+        used.set(getId(i, j));
+        if (crop_turn[i][j] < 0) crop_turn[i][j] = -crop_turn[i][j];
+        updated = true;
       }
-      else {
-        auto [i, j] = getPos(id);
-        crop_turn[i][j] = 0;
-      }
+      if (!updated) break;
     }
-    while (!planted.empty()) {
-      auto [i, j] = getPos(planted.front());
-      planted.pop();
-      used.set(getId(i, j));
-      if (crop_turn[i][j] < 0) crop_turn[i][j] = -crop_turn[i][j];
-    }
-
     // Crop Phase
     for (output_t o : ans) {
       int i = o.plant_i;
