@@ -140,8 +140,7 @@ int main() {
         if (canPlant(id, crop_turn, tobeused[idx].crop_turn, used, Graph)) {
           ans.push_back({ tobeused[idx].idx, i, j, 1 });
           placed[tobeused[idx].idx] = true;
-          used.set(id);
-          crop_turn[i][j] = tobeused[idx].crop_turn;
+          crop_turn[i][j] = -tobeused[idx].crop_turn;
           break;
         }
       }
@@ -202,6 +201,14 @@ int main() {
         used.set(getId(i, j));
         if (crop_turn[i][j] < 0) crop_turn[i][j] = -crop_turn[i][j];
         updated = true;
+      }
+      if (now_turn == 1) {
+        rep(i, h) rep(j, w) {
+          if (crop_turn[i][j] < 0) {
+            used.set(getId(i, j));
+            crop_turn[i][j] = -crop_turn[i][j];
+          }
+        }
       }
       if (!updated) break;
     }
