@@ -104,7 +104,7 @@ int main() {
   {  // まずスコアの大きいものを 100 個外側にうめちゃう
     constexpr int outer = 100;
     deque<int> can_plant;
-    {
+    {  // 埋められる場所の列挙、外側から
       queue<int> q;
       q.push(getId(in, 0));
       bitset<h * w> visited;
@@ -124,27 +124,28 @@ int main() {
     sort(v.begin(), v.end(), [](const vegeta_t& a, const vegeta_t& b) {
       int score_a = a.crop_turn - a.plant_before;
       int score_b = b.crop_turn - b.plant_before;
-      if (score_a == score_b) return a.plant_before < b.plant_before;
+      if (score_a == score_b) return a.crop_turn > b.crop_turn;
       return score_a > score_b;
     });
-    int cnt = 0;
-    while (!can_plant.empty() && cnt < outer) {
-      int id = can_plant.back();
-      can_plant.pop_back();
-      auto [i, j] = getPos(id);
-      rep(idx, outer) {
-        if (placed[v[idx].idx]) continue;
-        if (canPlant(id, crop_turn, v[idx].crop_turn, used, Graph)) {
-          ans.push_back({ v[idx].idx, i, j, 1 });
-          placed[v[idx].idx] = true;
+    vector<vegeta_t> tobeused;
+    rep(i, outer) tobeused.push_back(v[i]);
+    sort(tobeused.rbegin(), tobeused.rend());
+    sort(v.begin(), v.end());
+    rep(idx, tobeused.size()) {
+      while (!can_plant.empty()) {
+        int id = can_plant.back();
+        can_plant.pop_back();
+        auto [i, j] = getPos(id);
+        if (placed[tobeused[idx].idx]) continue;
+        if (canPlant(id, crop_turn, tobeused[idx].crop_turn, used, Graph)) {
+          ans.push_back({ tobeused[idx].idx, i, j, 1 });
+          placed[tobeused[idx].idx] = true;
           used.set(id);
-          crop_turn[i][j] = v[idx].crop_turn;
-          cnt++;
+          crop_turn[i][j] = tobeused[idx].crop_turn;
           break;
         }
       }
     }
-    sort(v.begin(), v.end());
   }
 
   for (int now_turn = 1; now_turn <= turn; now_turn++) {
