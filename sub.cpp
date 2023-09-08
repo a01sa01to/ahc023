@@ -11,6 +11,7 @@ using ull = unsigned long long;
 #define rep(i, n) for (int i = 0; i < (n); ++i)
 
 constexpr int turn = 100, h = 20, w = 20;
+int in;
 
 struct vegeta_t {
   int plant_before;
@@ -33,8 +34,34 @@ struct output_t {
 int getId(int i, int j) { return i * w + j; }
 pair<int, int> getPos(int id) { return { id / w, id % w }; }
 
+inline bool canPlant(const int id, vector<vector<int>> crop_turn, const int veg_crop, bitset<h * w> used, const vector<vector<int>>& Graph) {
+  queue<int> q;
+  q.push(getId(in, 0));
+  {
+    auto [i, j] = getPos(id);
+    crop_turn[i][j] = -veg_crop;
+  }
+  bitset<h * w> visited;
+  while (!q.empty()) {
+    int now = q.front();
+    q.pop();
+    if (visited.test(now)) continue;
+    auto [i, j] = getPos(now);
+    visited.set(now);
+    for (int next : Graph[now]) {
+      auto [ni, nj] = getPos(next);
+      bool can_visit = false;
+      if (crop_turn[i][j] == 0) can_visit = true;
+      if (crop_turn[i][j] > 0 && crop_turn[i][j] <= crop_turn[ni][nj]) can_visit = true;
+      if (crop_turn[i][j] < 0 && -crop_turn[i][j] <= abs(crop_turn[ni][nj])) can_visit = true;
+      if (!visited.test(next) && can_visit) q.push(next);
+    }
+  }
+  if ((visited & used) == used && visited.test(id)) return true;
+  return false;
+}
+
 int main() {
-  int in;
   cin.ignore(10), cin >> in;
   vector Graph(h * w, vector<int>(0));
   vector<vegeta_t> v;
@@ -99,14 +126,22 @@ int main() {
       if (score_a == score_b) return a.plant_before < b.plant_before;
       return score_a > score_b;
     });
-    rep(idx, 20) {
+    int cnt = 0;
+    while (!can_plant.empty() && cnt < 20) {
       int id = can_plant.back();
       can_plant.pop_back();
       auto [i, j] = getPos(id);
-      ans.push_back({ v[idx].idx, i, j, 1 });
-      placed[v[idx].idx] = true;
-      used.set(id);
-      crop_turn[i][j] = v[idx].crop_turn;
+      rep(idx, 20) {
+        if (placed[v[idx].idx]) continue;
+        if (canPlant(id, crop_turn, v[idx].crop_turn, used, Graph)) {
+          ans.push_back({ v[idx].idx, i, j, 1 });
+          placed[v[idx].idx] = true;
+          used.set(id);
+          crop_turn[i][j] = v[idx].crop_turn;
+          cnt++;
+          break;
+        }
+      }
     }
     sort(v.begin(), v.end());
   }
@@ -143,32 +178,11 @@ int main() {
       int id = can_plant.front();
       can_plant.pop();
       if (used.test(id)) continue;
-      queue<int> q;
-      bitset<h * w> visited;
-      {
-        auto [i, j] = getPos(id);
-        q.push(getId(in, 0));
-        crop_turn[i][j] = -v[veg_idx].crop_turn;
-      }
-      while (!q.empty()) {
-        int now = q.front();
-        q.pop();
-        if (visited.test(now)) continue;
-        auto [i, j] = getPos(now);
-        visited.set(now);
-        for (int next : Graph[now]) {
-          auto [ni, nj] = getPos(next);
-          bool can_visit = false;
-          if (crop_turn[i][j] == 0) can_visit = true;
-          if (crop_turn[i][j] > 0 && crop_turn[i][j] <= crop_turn[ni][nj]) can_visit = true;
-          if (crop_turn[i][j] < 0 && -crop_turn[i][j] <= abs(crop_turn[ni][nj])) can_visit = true;
-          if (!visited.test(next) && can_visit) q.push(next);
-        }
-      }
       // おける
-      if ((visited & used) == used && visited.test(id)) {
+      if (canPlant(id, crop_turn, v[veg_idx].crop_turn, used, Graph)) {
         auto [i, j] = getPos(id);
         ans.push_back({ v[veg_idx].idx, i, j, now_turn });
+        crop_turn[i][j] = -v[veg_idx].crop_turn;
         placed[v[veg_idx].idx] = true;
         veg_idx++;
         planted.push(id);
