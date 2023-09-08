@@ -74,6 +74,43 @@ int main() {
   bitset<h * w> used;
   int veg_idx = 0;
 
+  {  // まずスコアの大きいものを 20 個外側にうめちゃう
+    deque<int> can_plant;
+    {
+      queue<int> q;
+      q.push(getId(in, 0));
+      bitset<h * w> visited;
+      while (!q.empty()) {
+        int now = q.front();
+        q.pop();
+        if (visited.test(now)) continue;
+        auto [i, j] = getPos(now);
+        visited.set(now);
+        if (crop_turn[i][j] == 0) can_plant.push_back(now);
+        for (int next : Graph[now]) {
+          auto [ni, nj] = getPos(next);
+          if (!visited.test(next) && !used.test(next)) q.push(next);
+        }
+      }
+    }
+    sort(v.begin(), v.end(), [](const vegeta_t& a, const vegeta_t& b) {
+      int score_a = a.crop_turn - a.plant_before;
+      int score_b = b.crop_turn - b.plant_before;
+      if (score_a == score_b) return a.plant_before < b.plant_before;
+      return score_a > score_b;
+    });
+    rep(idx, 20) {
+      int id = can_plant.back();
+      can_plant.pop_back();
+      auto [i, j] = getPos(id);
+      ans.push_back({ v[idx].idx, i, j, 1 });
+      placed[v[idx].idx] = true;
+      used.set(id);
+      crop_turn[i][j] = v[idx].crop_turn;
+    }
+    sort(v.begin(), v.end());
+  }
+
   for (int now_turn = 1; now_turn <= turn; now_turn++) {
     // Plant Phase
     // まず埋められるところをチェック
@@ -98,7 +135,7 @@ int main() {
     queue<int> planted;
     while (!can_plant.empty()) {
       if (veg_idx >= v.size()) break;
-      if (v[veg_idx].plant_before < now_turn) {
+      if (v[veg_idx].plant_before < now_turn || placed[v[veg_idx].idx]) {
         veg_idx++;
         continue;
       }
